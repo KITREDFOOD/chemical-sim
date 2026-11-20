@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Molecule Lab</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101522;color:#edf2fa;font-family:Arial,sans-serif}
+header{padding:22px 5%;border-bottom:1px solid #30394b;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:23px}
+header span{color:#70d6bd;font-size:13px}
+main{max-width:1200px;margin:auto;padding:25px 4%}
+.controls{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+select,button{background:#202b3d;color:white;border:1px solid #40506a;padding:11px 14px;border-radius:8px;font-size:14px;cursor:pointer}
+button.active{background:#176b61;border-color:#42c8ac}
+.layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(230px,1fr);gap:18px}
+.panel{background:#192233;border:1px solid #303c50;border-radius:13px;padding:18px}
+.panel h2{font-size:17px;margin:0 0 14px}
+#stage{width:100%;height:430px;background:radial-gradient(ellipse,#26354b,#131b2a);border-radius:10px;touch-action:none}
+#stage svg{width:100%;height:100%;overflow:visible}
+.atom{cursor:pointer}
+.atom:hover{filter:brightness(1.3)}
+.info{line-height:1.7;color:#c5d0df;font-size:14px}
+.info strong{color:white}
+.stat{padding:12px;background:#222f42;border-radius:8px;margin:9px 0}
+.stat small{display:block;color:#92a4bb;margin-bottom:4px}
+.stat b{font-size:17px}
+#description{color:#aabbd0;line-height:1.6;font-size:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:13px;font-size:12px;color:#bac7d8}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+#atomInfo{margin-top:15px;padding:12px;background:#222f42;border-radius:8px;min-height:65px;font-size:13px;color:#c5d0df}
+.bottom{margin-top:18px}
+.bottom p{color:#aabbd0;font-size:14px;line-height:1.6}
+@media(max-width:750px){.layout{grid-template-columns:1fr}#stage{height:340px}}
+</style>
+</head>
+<body>
+<header>
+ <h1>⚛ Molecule Lab</h1>
+ <span>INTERACTIVE CHEMISTRY SIMULATOR</span>
+</header>
+<main>
+ <div class="controls">
+  <select id="molecule">
+   <option value="water">Water (H₂O)</option>
+   <option value="co2">Carbon dioxide (CO₂)</option>
+   <option value="methane">Methane (CH₄)</option>
+   <option value="ammonia">Ammonia (NH₃)</option>
+   <option value="oxygen">Oxygen (O₂)</option>
+   <option value="nitrogen">Nitrogen (N₂)</option>
+   <option value="hcl">Hydrogen chloride (HCl)</option>
+   <option value="ethene">Ethene (C₂H₄)</option>
+  </select>
+  <button class="active" data-view="ball">Ball & Stick</button>
+  <button data-view="lewis">Lewis Dots</button>
+  <button data-view="structural">Structural</button>
+  <button data-view="space">Space Filling</button>
+ </div>
+
+ <div class="layout">
+  <section class="panel">
+   <h2 id="viewTitle">Ball-and-stick model</h2>
+   <div id="stage"></div>
+   <div class="legend">
+    <span><i class="dot" style="background:#eeeeee"></i>Hydrogen</span>
+    <span><i class="dot" style="background:#555e6c"></i>Carbon</span>
+    <span><i class="dot" style="background:#ed5555"></i>Oxygen</span>
+    <span><i class="dot" style="background:#507ce8"></i>Nitrogen</span>
+    <span><i class="dot" style="background:#a7b2c1"></i>Chlorine</span>
+   </div>
+   <div id="atomInfo">Select an atom to inspect its properties. Drag the model to rotate it.</div>
+  </section>
+
+  <aside class="panel">
+   <h2 id="name">Water</h2>
+   <p id="description"></p>
+   <div class="stat"><small>CHEMICAL FORMULA</small><b id="formula"></b></div>
+   <div class="stat"><small>BOND TYPE</small><b id="bond"></b></div>
+   <div class="stat"><small>MOLECULAR SHAPE</small><b id="shape"></b></div>
+   <div class="stat"><small>BOND ANGLE</small><b id="angle"></b></div>
+   <div class="stat"><small>POLARITY</small><b id="polarity"></b></div>
+   <div class="stat"><small>TOTAL ATOMS</small><b id="count"></b></div>
+  </aside>
+ </div>
+
+ <section class="panel bottom">
+  <h2>Understanding the bonding</h2>
+  <p id="explanation"></p>
+ </section>
+</main>
+
+<script>
+const colors={H:"#eeeeee",C:"#555e6c",O:"#ed5555",N:"#507ce8",Cl:"#a7b2c1"};
+const radii={H:9,C:17,O:16,N:16,Cl:18};
+const molecules={
+ water:{
+  name:"Water",formula:"H₂O",bond:"Polar covalent",
+  shape:"Bent / V-shaped",angle:"104.5°",polarity:"Polar",
+  description:"Water consists of one oxygen atom bonded to two hydrogen atoms.",
+  explanation:"Oxygen has six valence electrons. It shares one electron pair with each hydrogen, forming two single covalent bonds. Two lone pairs remain on oxygen. These lone pairs repel the bonding pairs, creating a bent shape.",
+  atoms:[["O",0,0,0],["H",-1,-.7,0],["H",1,-.7,0]],
+  bonds:[[0,1,1],[0,2,1]],
+  lone:[0,0,0,0]
+ },
+ co2:{
+  name:"Carbon dioxide",formula:"CO₂",bond:"Double covalent",
+  shape:"Linear",angle:"180°",polarity:"Non-polar",
+  description:"One carbon atom is connected to two oxygen atoms.",
+  explanation:"Carbon shares two electron pairs with each oxygen, creating two double bonds. The molecule is linear and symmetrical, so the bond dipoles cancel each other.",
+  atoms:[["O",-1.3,0,0],["C",0,0,0],["O",1.3,0,0]],
+  bonds:[[0,1,2],[1,2,2]]
+ },
+ methane:{
+  name:"Methane",formula:"CH₄",bond:"Covalent",
+  shape:"Tetrahedral",angle:"109.5°",polarity:"Non-polar",
+  description:"One carbon atom is bonded to four hydrogen atoms.",
+  explanation:"Carbon shares one electron with each of four hydrogen atoms, producing four single covalent bonds. The tetrahedral arrangement minimises electron-pair repulsion.",
+  atoms:[["C",0,0,0],["H",1,1,1],["H",-1,-1,1],["H",-1,1,-1],["H",1,-1,-1]],
+  bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]]
+ },
+ ammonia:{
+  name:"Ammonia",formula:"NH₃",bond:"Polar covalent",
+  shape:"Trigonal pyramidal",angle:"107°",polarity:"Polar",
+  description:"One nitrogen atom is bonded to three hydrogen atoms.",
+  explanation:"Nitrogen has five valence electrons. It shares three pairs with hydrogen and retains one lone pair. The lone pair pushes the bonds into a trigonal pyramidal shape.",
+  atoms:[["N",0,0,.5],["H",1,-.6,-.3],["H",-1,-.6,-.3],["H",0,1,-.3]],
+  bonds:[[0,1,1],[0,2,1],[0,3,1]]
+ },
+ oxygen:{
+  name:"Oxygen",formula:"O₂",bond:"Double covalent",
+  shape:"Linear",angle:"180°",polarity:"Non-polar",
+  description:"Two oxygen atoms form a double bond.",
+  explanation:"Each oxygen atom contributes two electrons to two shared electron pairs. Each atom also retains two lone pairs. Both atoms are identical, so the molecule is non-polar.",
+  atoms:[["O",-0.8,0,0],["O",0.8,0,0]],
+  bonds:[[0,1,2]]
+ },
+ nitrogen:{
+  name:"Nitrogen",formula:"N₂",bond:"Triple covalent",
+  shape:"Linear",angle:"180°",polarity:"Non-polar",
+  description:"Two nitrogen atoms are connected by a triple bond.",
+  explanation:"Each nitrogen contributes three electrons to three shared electron pairs, creating a very strong triple bond. Each nitrogen retains one lone pair.",
+  atoms:[["N",-.8,0,0],["N",.8,0,0]],
+  bonds:[[0,1,3]]
+ },
+ hcl:{
+  name:"Hydrogen chloride",formula:"HCl",bond:"Polar covalent",
+  shape:"Linear",angle:"180°",polarity:"Polar",
+  description:"One hydrogen atom shares an electron pair with chlorine.",
+  explanation:"Hydrogen and chlorine share one electron pair. Chlorine attracts the shared electrons more strongly, giving it a partial negative charge and hydrogen a partial positive charge.",
+  atoms:[["H",-.8,0,0],["Cl",.8,0,0]],
+  bonds:[[0,1,1]]
+ },
+ ethene:{
+  name:"Ethene",formula:"C₂H₄",bond:"Covalent (double C=C)",
+  shape:"Trigonal planar around each carbon",angle:"~120°",polarity:"Non-polar",
+  description:"Two carbon atoms form a double bond, with each carbon bonded to two hydrogen atoms.",
+  explanation:"The carbon atoms share two electron pairs. Each carbon also forms two single bonds with hydrogen. Each carbon has three bonding regions and a trigonal planar arrangement.",
+  atoms:[["C",-.65,0,0],["C",.65,0,0],["H",-1.2,1,0],["H",-1.2,-1,0],["H",1.2,1,0],["H",1.2,-1,0]],
+  bonds:[[0,1,2],[0,2,1],[0,3,1],[1,4,1],[1,5,1]]
+ }
+};
+
+let current="water",view="ball",rotation=0,tilt=0;
+let dragging=false,lastX=0,lastY=0;
+
+const stage=document.getElementById("stage");
+const ns="http://www.w3.org/2000/svg";
+function el(tag,attrs={},parent){
+ const e=document.createElementNS(ns,tag);
+ Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+ if(parent)parent.appendChild(e);
+ return e;
+}
+function project(atom){
+ let [s,x,y,z]=atom;
+ let a=rotation*Math.PI/180,b=tilt*Math.PI/180;
+ let x1=x*Math.cos(a)-z*Math.sin(a);
+ let z1=x*Math.sin(a)+z*Math.cos(a);
+ let y1=y*Math.cos(b)-z1*Math.sin(b);
+ let z2=y*Math.sin(b)+z1*Math.cos(b);
+ return {x:210+x1*78,y:205-y1*78,z:z2};
+}
+function draw(){
+ const m=molecules[current];
+ stage.innerHTML="";
+ const svg=el("svg",{viewBox:"0 0 420 410"},stage);
+ const projected=m.atoms.map(project);
+ const group=el("g",{},svg);
+
+ if(view==="ball"||view==="space"||view==="structural"){
+  m.bonds.forEach(([a,b,order])=>{
+   const p=projected[a],q=projected[b];
+   const dx=q.x-p.x,dy=q.y-p.y;
+   const length=Math.sqrt(dx*dx+dy*dy)||1;
+   const ox=-dy/length*5,oy=dx/length*5;
+   for(let i=0;i<order;i++){
+    const offset=(i-(order-1)/2)*9;
+    el("line",{
+     x1:p.x+ox*offset/5,y1:p.y+oy*offset/5,
+     x2:q.x+ox*offset/5,y2:q.y+oy*offset/5,
+     stroke:view==="structural"?"#e9f1fc":"#a9b7c9",
+     "stroke-width":view==="structural"?3:5,
+     "stroke-linecap":"round"
+    },group);
+   }
+  });
+ }
+
+ if(view==="lewis"){
+  m.atoms.forEach((atom,i)=>{
+   const p=projected[i];
+   const symbol=atom[0];
+   const lonePairs=({H:0,C:0,O:2,N:1,Cl:3})[symbol];
+   for(let j=0;j<lonePairs;j++){
+    let angle=(j/lonePairs)*Math.PI*2;
+    for(let k=0;k<2;k++){
+     let aa=angle+(k-.5)*.12;
+     el("circle",{cx:p.x+Math.cos(aa)*27,cy:p.y+Math.sin(aa)*27,r:3.5,fill:"#70d6bd"},group);
+    }
+   }
+  });
+ }
+
+ m.atoms.forEach((atom,i)=>{
+  const p=projected[i],symbol=atom[0];
+  const size=radii[symbol];
+  const g=el("g",{class:"atom"},group);
+  if(view==="space"){
+   el("circle",{cx:p.x,cy:p.y,r:size*2.15,fill:colors[symbol],opacity:.8,stroke:"#ffffff","stroke-opacity":.25,"stroke-width":2},g);
+  }else if(view==="structural"){
+   el("circle",{cx:p.x,cy:p.y,r:15,fill:"#192233"},g);
+   const t=el("text",{x:p.x,y:p.y+6,"text-anchor":"middle",fill:"#fff","font-size":19,"font-weight":"bold"},g);
+   t.textContent=symbol;
+  }else{
+   el("circle",{cx:p.x,cy:p.y,r:size,fill:colors[symbol],stroke:"#ffffff","stroke-opacity":.55,"stroke-width":2},g);
+   const t=el("text",{x:p.x,y:p.y+4,"text-anchor":"middle",fill:symbol==="H"||symbol==="Cl"?"#17202d":"white","font-size":size>12?12:10,"font-weight":"bold"},g);
+   t.textContent=symbol;
+  }
+  g.addEventListener("click",()=>{
+   document.getElementById("atomInfo").innerHTML=
+   `<strong>${symbol} atom #${i+1}</strong><br>Element: ${elementName(symbol)}<br>Valence electrons: ${{H:1,C:4,O:6,N:5,Cl:7}[symbol]}<br>Position in molecule: ${i+1} of ${m.atoms.length}`;
+  });
+ });
+ document.getElementById("viewTitle").textContent={
+  ball:"Ball-and-stick model",lewis:"Lewis electron dot diagram",
+  structural:"Structural formula",space:"Space-filling model"
+ }[view];
+ document.getElementById("atomInfo").textContent="Select an atom to inspect its properties. Drag the model to rotate it.";
+}
+function elementName(s){return {H:"Hydrogen",C:"Carbon",O:"Oxygen",N:"Nitrogen",Cl:"Chlorine"}[s]}
+function update(){
+ const m=molecules[current];
+ document.getElementById("name").textContent=m.name;
+ document.getElementById("description").textContent=m.description;
+ document.getElementById("formula").textContent=m.formula;
+ document.getElementById("bond").textContent=m.bond;
+ document.getElementById("shape").textContent=m.shape;
+ document.getElementById("angle").textContent=m.angle;
+ document.getElementById("polarity").textContent=m.polarity;
+ document.getElementById("count").textContent=m.atoms.length;
+ document.getElementById("explanation").textContent=m.explanation;
+ draw();
+}
+document.getElementById("molecule").addEventListener("change",e=>{
+ current=e.target.value;rotation=0;tilt=0;update();
+});
+document.querySelectorAll("[data-view]").forEach(btn=>{
+ btn.addEventListener("click",()=>{
+  view=btn.dataset.view;
+  document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b===btn));
+  draw();
+ });
+});
+stage.addEventListener("pointerdown",e=>{
+ dragging=true;lastX=e.clientX;lastY=e.clientY;
+ stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener("pointermove",e=>{
+ if(!dragging)return;
+ rotation+=(e.clientX-lastX)*.8;
+ tilt=Math.max(-80,Math.min(80,tilt+(e.clientY-lastY)*.8));
+ lastX=e.clientX;lastY=e.clientY;draw();
+});
+stage.addEventListener("pointerup",()=>dragging=false);
+stage.addEventListener("pointercancel",()=>dragging=false);
+update();
+</script>
+</body>
+</html>
